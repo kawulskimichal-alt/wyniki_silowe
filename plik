@@ -1,1 +1,196 @@
 
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Gym Tracker Pro</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+<style>
+body {
+    margin: 0;
+    font-family: -apple-system, BlinkMacSystemFont, sans-serif;
+    background: #0f172a;
+    color: white;
+}
+
+.container {
+    max-width: 500px;
+    margin: auto;
+    padding: 20px;
+}
+
+h1 {
+    text-align: center;
+}
+
+.card {
+    background: #1e293b;
+    padding: 15px;
+    border-radius: 15px;
+    margin-bottom: 15px;
+}
+
+input, button, select {
+    width: 100%;
+    padding: 10px;
+    margin-top: 8px;
+    border-radius: 10px;
+    border: none;
+    font-size: 14px;
+}
+
+button {
+    background: #3b82f6;
+    color: white;
+    font-weight: bold;
+}
+
+button:hover {
+    background: #2563eb;
+}
+
+.entry {
+    font-size: 14px;
+    margin: 5px 0;
+}
+
+canvas {
+    margin-top: 10px;
+}
+
+.small-btn {
+    background: #334155;
+    margin-top: 5px;
+}
+</style>
+</head>
+
+<body>
+<div class="container">
+
+<h1>🏋️ Gym Tracker</h1>
+
+<div class="card">
+<h3>Dodaj wynik</h3>
+<input type="text" id="exercise" placeholder="Ćwiczenie">
+<input type="number" id="weight" placeholder="Ciężar (kg)">
+<input type="number" id="reps" placeholder="Powtórzenia">
+
+<button onclick="addEntry()">Dodaj</button>
+</div>
+
+<div class="card">
+<h3>Backup</h3>
+<button class="small-btn" onclick="exportData()">📥 Pobierz dane</button>
+<input type="file" onchange="importData(event)">
+</div>
+
+<div class="card">
+<h3>Historia</h3>
+<div id="history"></div>
+</div>
+
+<div id="charts"></div>
+
+</div>
+
+<script>
+let data = JSON.parse(localStorage.getItem("gymData")) || {};
+
+function saveData() {
+    localStorage.setItem("gymData", JSON.stringify(data));
+}
+
+function addEntry() {
+    const ex = document.getElementById("exercise").value;
+    const weight = document.getElementById("weight").value;
+    const reps = document.getElementById("reps").value;
+
+    if (!ex || !weight) {
+        alert("Uzupełnij dane!");
+        return;
+    }
+
+    if (!data[ex]) data[ex] = [];
+
+    data[ex].push({
+        weight: Number(weight),
+        reps: Number(reps),
+        date: new Date().toLocaleDateString()
+    });
+
+    saveData();
+    render();
+}
+
+function render() {
+    renderHistory();
+    renderCharts();
+}
+
+function renderHistory() {
+    const div = document.getElementById("history");
+    div.innerHTML = "";
+
+    Object.keys(data).forEach(ex => {
+        data[ex].forEach(e => {
+            div.innerHTML += `
+                <div class="entry">
+                    ${e.date} | <b>${ex}</b>: ${e.weight}kg x ${e.reps}
+                </div>
+            `;
+        });
+    });
+}
+
+function renderCharts() {
+    const container = document.getElementById("charts");
+    container.innerHTML = "";
+
+    Object.keys(data).forEach(ex => {
+        const canvas = document.createElement("canvas");
+        container.appendChild(document.createElement("div")).innerHTML = `<h3>${ex}</h3>`;
+        container.appendChild(canvas);
+
+        new Chart(canvas, {
+            type: "line",
+            data: {
+                labels: data[ex].map(e => e.date),
+                datasets: [{
+                    label: "kg",
+                    data: data[ex].map(e => e.weight),
+                    tension: 0.2
+                }]
+            }
+        });
+    });
+}
+
+function exportData() {
+    const blob = new Blob([JSON.stringify(data)], {type: "application/json"});
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(blob);
+    a.download = "gym-data.json";
+    a.click();
+}
+
+function importData(event) {
+    const file = event.target.files[0];
+    const reader = new FileReader();
+
+    reader.onload = function(e) {
+        data = JSON.parse(e.target.result);
+        saveData();
+        render();
+    };
+
+    reader.readAsText(file);
+}
+
+render();
+</script>
+
+</body>
+</html>
