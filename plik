@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+<meta charset="UTF-8">
+<title>Tracker siłowni</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<style>
+    body {
+        font-family: Arial;
+        max-width: 800px;
+        margin: auto;
+        padding: 20px;
+    }
+    input, button {
+        padding: 8px;
+        margin: 5px;
+    }
+    .entry {
+        margin: 5px 0;
+    }
+</style>
+</head>
+<body>
+
+<h1>📊 Tracker siłowni</h1>
+
+<h3>Dodaj wynik</h3>
+<input type="text" id="exercise" placeholder="Ćwiczenie (np. przysiad)">
+<input type="number" id="weight" placeholder="Ciężar (kg)">
+<button onclick="addEntry()">Dodaj</button>
+
+<h3>Historia</h3>
+<div id="history"></div>
+
+<h3>Wykres</h3>
+<canvas id="chart"></canvas>
+
+<script>
+let data = JSON.parse(localStorage.getItem("gymData")) || [];
+
+function saveData() {
+    localStorage.setItem("gymData", JSON.stringify(data));
+}
+
+function addEntry() {
+    const exercise = document.getElementById("exercise").value;
+    const weight = document.getElementById("weight").value;
+
+    if (!exercise || !weight) {
+        alert("Wpisz dane!");
+        return;
+    }
+
+    data.push({
+        exercise,
+        weight: Number(weight),
+        date: new Date().toLocaleDateString()
+    });
+
+    saveData();
+    render();
+}
+
+function render() {
+    const historyDiv = document.getElementById("history");
+    historyDiv.innerHTML = "";
+
+    data.forEach(entry => {
+        historyDiv.innerHTML += `
+            <div class="entry">
+                ${entry.date} - ${entry.exercise}: ${entry.weight} kg
+            </div>
+        `;
+    });
+
+    updateChart();
+}
+
+let chart;
+
+function updateChart() {
+    const ctx = document.getElementById("chart").getContext("2d");
+
+    const labels = data.map(e => e.date);
+    const weights = data.map(e => e.weight);
+
+    if (chart) {
+        chart.destroy();
+    }
+
+    chart = new Chart(ctx, {
+        type: "line",
+        data: {
+            labels: labels,
+            datasets: [{
+                label: "Postęp (kg)",
+                data: weights,
+                fill: false,
+                tension: 0.1
+            }]
+        }
+    });
+}
+
+render();
+</script>
+
+</body>
+</html>
